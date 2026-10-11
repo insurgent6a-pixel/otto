@@ -13,12 +13,11 @@ Do the steps in order. Every value you copy is marked **like this**.
    - the **Publishable key** (`sb_publishable_...`, the old "anon" key)
    - the **Secret key** (`sb_secret_...`, the old "service_role" key). Never share this one.
 
-### Sign-in email
+### Sign-in: email and password only
 
-So you can sign in on the iPhone home-screen app, the email must contain a 6-digit code (a link alone opens Safari, not the app).
+Otto signs in with an email and a password. It never sends email, so turn confirmation off:
 
-1. **Authentication > Emails > Templates > Magic Link**: replace the body with the contents of `supabase/templates/magic_link.html`. Subject: `Your Otto sign-in`.
-2. Do the same for **Confirm signup** with `supabase/templates/confirmation.html`.
+**Authentication > Sign In / Providers > Email**: switch **Confirm email** off and save.
 
 ## 2. Push keys
 
@@ -47,38 +46,39 @@ Also make up a long random string for the **cron secret**, for example by runnin
 | `VAPID_PRIVATE_KEY` | the VAPID Private Key |
 | `VAPID_SUBJECT` | `mailto:` plus your email |
 | `CRON_SECRET` | your cron secret |
-| `RESEND_API_KEY` | optional, see step 9 |
+| `RESEND_API_KEY` | optional, see step 8 |
 | `RESEND_FROM` | optional, e.g. `Otto <otto@yourdomain.com>` |
 
 3. Deploy. Note your address, e.g. **`https://otto-yourname.vercel.app`**.
 
-## 4. Point Supabase at the app
+## 4. Create your account (this makes you the owner)
 
-**Authentication > URL Configuration**:
-- **Site URL**: your Vercel address.
-- **Redirect URLs**: add your Vercel address.
-
-Without this, sign-in links point to localhost.
-
-## 5. First sign-in (this makes you the owner)
-
-1. Open your Vercel address, enter your email, tap **Send sign-in link**.
-2. Use the link or type the 6-digit code.
+1. Open your Vercel address and tap **First time? Create your account**.
+2. Enter your email and a password of at least 8 characters, then tap **Create account**.
 3. Otto claims itself for your account and adds the 16 starting tasks. You land on Today.
-4. Back in Supabase: **Authentication > Sign In / Providers > Email**, turn **Allow new users to sign up** off. Nobody else can create an account now, and your sign-in keeps working.
+4. Back in Supabase: **Authentication > Sign In / Providers**, turn **Allow new users to sign up** off. Nobody else can create an account now, and your sign-in keeps working.
+
+From then on it's just email, password, **Sign in**. Change the password any time in **Settings > Account**.
+
+**Forgot it?** In Supabase's **SQL Editor**, run this with your email and a new password, then sign in with it:
+
+```sql
+update auth.users set encrypted_password = crypt('your-new-password', gen_salt('bf'))
+where email = 'you@example.com';
+```
 
 Your timezone starts as **WITA**. Change it any time in **Settings > Time zone** (WIB, WITA, WIT or any city).
 
-## 6. Install on the iPhone
+## 5. Install on the iPhone
 
 1. Open your Otto address in **Safari**.
 2. Tap **Share > Add to Home Screen > Add**.
-3. Open Otto from the home screen and sign in with the **6-digit code** from the email.
+3. Open Otto from the home screen and sign in with your email and password. Let the iPhone save the password so next time it's one tap.
 4. **Settings > Reminders > Turn on reminders**, allow notifications, then tap **Send test**.
 
 On a Mac: Safari **File > Add to Dock**, or Chrome's **Install** button in the address bar.
 
-## 7. Turn on Otto's clock (reminders, nightly plan, daily score)
+## 6. Turn on Otto's clock (reminders, nightly plan, daily score)
 
 1. In Supabase, **Database > Extensions**: enable `pg_cron` and `pg_net` if they aren't on.
 2. Open `supabase/cron.sql`, replace `https://YOUR-OTTO.vercel.app` with your address and `YOUR_CRON_SECRET` with your cron secret.
@@ -87,7 +87,7 @@ On a Mac: Safari **File > Add to Dock**, or Chrome's **Install** button in the a
 
 Supabase pings Otto every 5 minutes. Otto works out what's due in your timezone: the sweep at 00:30, the plan at 06:00, the summary at 08:00, the wrap-up at 17:00, the weekly review on Sunday at 17:00, the score at 23:55, and reminders 10 minutes before each block. Quiet hours (default 21:00 to 08:00) stay quiet.
 
-## 8. Claude
+## 7. Claude
 
 ### The Otto project (talk to Otto by voice or text)
 
@@ -114,12 +114,12 @@ If you use Claude Code, you can schedule a routine each weekday at 07:30 with th
 
 > Using the Otto connector, list today. For any task that looks too big for one sitting, suggest a first step under 15 minutes and add it to that task's notes. For each waiting item due back today, draft a short polite follow-up message into its notes. Don't change dates or priorities.
 
-## 9. Optional extras
+## 8. Optional extras
 
 - **Email fallback**: if no reminder reaches your phone for 24 hours, the 08:00 summary is emailed instead. Create a free resend.com account, verify a sending domain, set `RESEND_API_KEY` and `RESEND_FROM` in Vercel, then add your address in **Settings > Reminders > Backup email**.
 - **Calendar on the iPhone**: **Settings > Calendar feed > Copy**, then on the iPhone: **Settings > Calendar > Accounts > Add Account > Other > Add Subscribed Calendar**, paste. Turn **Remove Alerts** off.
 
-## 10. Siri Shortcut "Otto"
+## 9. Siri Shortcut "Otto"
 
 1. In Otto, **Settings > Siri Shortcut**: copy the **URL** and, with **Show**, the **Capture key**.
 2. On the iPhone, open **Shortcuts > +**, name it **Otto**.

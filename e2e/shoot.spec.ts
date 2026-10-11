@@ -36,3 +36,12 @@ test("shot sheets", async ({ page }, info) => {
   await page.waitForTimeout(400);
   await page.screenshot({ path: `test-results/shots/${info.project.name}-sheet-edit.png` });
 });
+
+test.describe("signed out", () => {
+  test.use({ storageState: { cookies: [], origins: [] } });
+  test("shot login", async ({ page }, info) => {
+    await page.goto("/");
+    await page.getByRole("heading", { name: "Sign in to Otto" }).waitFor();
+    await page.screenshot({ path: `test-results/shots/${info.project.name}-login.png` });
+  });
+});

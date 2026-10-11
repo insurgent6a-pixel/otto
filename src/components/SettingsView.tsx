@@ -532,6 +532,52 @@ function PipelinesSection() {
   );
 }
 
+function AccountSection() {
+  const email = useOtto((x) => x.session?.user.email ?? null);
+  const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+  const change = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password.length < 8) return setMsg("Use a password of at least 8 characters.");
+    setBusy(true);
+    const { error } = await sb().auth.updateUser({ password });
+    setBusy(false);
+    setMsg(error ? `Couldn't change it: ${error.message}` : "Password changed.");
+    if (!error) setPassword("");
+  };
+  return (
+    <Section title="Account">
+      {email && <p className="text-[15px] text-muted">Signed in as <span className="text-ink">{email}</span></p>}
+      <form onSubmit={change} className="space-y-2">
+        <input type="email" autoComplete="username" value={email ?? ""} readOnly hidden />
+        <Field label="New password">
+          <div className="flex gap-2">
+            <input
+              type="password"
+              autoComplete="new-password"
+              className={inputClass}
+              placeholder="At least 8 characters"
+              value={password}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                setMsg(null);
+              }}
+            />
+            <Button type="submit" disabled={busy || !password}>
+              {busy ? "Saving..." : "Change password"}
+            </Button>
+          </div>
+        </Field>
+        {msg && <p className="text-[15px]" role="status">{msg}</p>}
+      </form>
+      <Button variant="danger" onClick={() => void sb().auth.signOut()}>
+        Sign out
+      </Button>
+    </Section>
+  );
+}
+
 export function SettingsView() {
   return (
     <div className="safe-top mx-auto max-w-2xl px-4 [--pad-top:1rem] pb-10 sm:px-6 md:[--pad-top:1.5rem]">
@@ -544,11 +590,7 @@ export function SettingsView() {
         <BusySection />
         <ConnectSection />
         <PipelinesSection />
-        <Card>
-          <Button variant="danger" onClick={() => void sb().auth.signOut()}>
-            Sign out
-          </Button>
-        </Card>
+        <AccountSection />
       </div>
     </div>
   );

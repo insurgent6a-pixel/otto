@@ -259,3 +259,20 @@ test.describe("Phase 5", () => {
     await expect(page.getByText("Switched to WITA. Your day now runs on WITA time.")).toBeVisible();
   });
 });
+
+test.describe("Sign-in", () => {
+  test.use({ storageState: { cookies: [], origins: [] } });
+
+  test("email and password, with clear errors", async ({ page }, info) => {
+    test.skip(info.project.name !== "phone");
+    await page.goto("/");
+    await expect(page.getByRole("heading", { name: "Sign in to Otto" })).toBeVisible();
+    await page.getByLabel("Email").fill("electra@otto.test");
+    await page.getByLabel("Password").fill("not-the-password");
+    await page.getByRole("button", { name: "Sign in", exact: true }).click();
+    await expect(page.getByRole("alert").filter({ hasText: "Wrong" })).toHaveText("Wrong email or password. Try again.");
+    await page.getByLabel("Password").fill(process.env.OTTO_PASSWORD!);
+    await page.getByRole("button", { name: "Sign in", exact: true }).click();
+    await expect(page.getByRole("heading", { level: 1, name: /(Morning|Afternoon|Evening), / })).toBeVisible();
+  });
+});

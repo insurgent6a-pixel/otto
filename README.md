@@ -9,7 +9,7 @@ Otto plans the day, Electra overrides anything. Claude writes tasks in through S
 
 ## Stack
 
-Next.js 16 (App Router, TypeScript strict) PWA on Vercel, Supabase (Postgres + RLS, magic link and code sign-in, Realtime, pg_cron), Web Push, Tailwind v4 with the Solarpunk Day / Forest Night tokens. All "smart" behavior is deterministic code in `src/engine`; there are no AI API calls in the app.
+Next.js 16 (App Router, TypeScript strict) PWA on Vercel, Supabase (Postgres + RLS, email and password sign-in, Realtime, pg_cron), Web Push, Tailwind v4 with the Solarpunk Day / Forest Night tokens. All "smart" behavior is deterministic code in `src/engine`; there are no AI API calls in the app.
 
 ## Layout
 

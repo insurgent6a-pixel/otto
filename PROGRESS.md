@@ -24,7 +24,7 @@ Quality bar (spec 19):
 - `otto-preview.html` was not in the folder. The look follows the spec's tokens and layout text.
 - Three colors moved slightly for WCAG AA text contrast: muted `#66766b` → `#5f6f64` (light), a `--fire-ink` `#c4381f` for small fire-red text in light mode (rings, gauge and flame keep `#e0442a`), and secondary buttons on the green card use a deeper fern instead of a translucent white.
 - Owner setup (Appendix A part 3) and seeding (part 4) happen on first sign-in via `otto_claim()`. The first account to sign in owns Otto; SETUP.md says to turn off sign-ups right after.
-- Sign-in sends a link and a 6-digit code, because a magic link opens Safari, not the home-screen app.
+- Sign-in is email and password only (changed at the user's request, replacing the spec's magic link). Email confirmation is off and Otto never sends email for sign-in. Password changes live in Settings > Account; a forgotten password is reset with one SQL line (SETUP.md step 4).
 - Jobs run in Next.js route handlers behind one 5-minute pg_cron tick instead of Supabase Edge Functions, so the engine code is shared and the timezone can change without rescheduling cron.
 - The Otto MCP server (4b) is a Next.js route with a secret URL rather than a Supabase Edge Function, for the same reason.
 - Daily focus cap default: 5 hours (spec gives none).
@@ -37,14 +37,14 @@ Quality bar (spec 19):
 ## Waiting on the user
 - Create the Supabase project and run the two migrations (SETUP.md steps 1).
 - Generate VAPID keys and a cron secret, deploy to Vercel with the env vars (steps 2 and 3).
-- Set Site URL and redirect URL in Supabase Auth, sign in once, turn off sign-ups (steps 4 and 5).
-- Run `supabase/cron.sql` with the deployed URL and cron secret (step 7).
-- Connect the Supabase connector in Claude and paste the instructions from Settings > Claude (step 8).
-- Build the Siri Shortcut (step 10).
+- Turn off Confirm email in Supabase Auth, create the account in Otto, then turn off sign-ups (steps 1 and 4).
+- Run `supabase/cron.sql` with the deployed URL and cron secret (step 6).
+- Connect the Supabase connector in Claude and paste the instructions from Settings > Claude (step 7).
+- Build the Siri Shortcut (step 9).
 - Fill in what Otto never invents: goals, real deadlines, the compost timeline, work hours.
 
 ## Notes for the next session
-- Local stack: `npx supabase start` (Docker), `npm run dev`. Local keys are in `.env.local` (gitignored). The mail catcher is at http://127.0.0.1:54324; e2e reads sign-in codes from it.
+- Local stack: `npx supabase start` (Docker), `npm run dev`. Local keys are in `.env.local` (gitignored). e2e signs in as electra@otto.test with `OTTO_PASSWORD` from `.env.local`, creating the account on a fresh database.
 - `window.__otto` exposes the store in development only; e2e uses it to pin a block.
 - e2e tests that change data run on the phone project only. `npx supabase db reset` gives a clean slate; the global setup signs in again and re-seeds.
 - Next 16 here has breaking changes: read `node_modules/next/dist/docs/` before touching routing or caching.

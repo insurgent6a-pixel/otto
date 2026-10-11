@@ -6,37 +6,44 @@ import { Button, inputClass } from "./ui";
 import { OttoMark } from "./Icons";
 import { useOtto } from "@/lib/store";
 
+/** Supabase's messages, in Otto's words: what failed and what to do. */
+function explain(message: string, mode: "signin" | "create"): string {
+  if (/invalid login credentials/i.test(message)) return "Wrong email or password. Try again.";
+  if (/already registered|already been registered|already exists/i.test(message)) return "That email already has an account. Sign in instead.";
+  if (/signups? not allowed|signup is disabled/i.test(message)) return "New accounts are turned off. Sign in with your existing account.";
+  if (/password should be at least|weak password|password is too/i.test(message)) return "Use a password of at least 8 characters.";
+  if (/email not confirmed/i.test(message)) return "Email confirmation is still on in Supabase. Turn off Confirm email, then sign in.";
+  if (/rate limit|too many/i.test(message)) return "Too many tries. Wait a minute, then try again.";
+  if (/fetch|network/i.test(message)) return "Couldn't reach Otto. Check your connection and try again.";
+  return mode === "signin" ? `Couldn't sign in: ${message}` : `Couldn't create the account: ${message}`;
+}
+
 export function Login() {
   const error = useOtto((s) => s.error);
+  const [mode, setMode] = useState<"signin" | "create">("signin");
   const [email, setEmail] = useState("");
-  const [code, setCode] = useState("");
-  const [stage, setStage] = useState<"email" | "sent">("email");
+  const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(error);
 
-  const send = async (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.includes("@")) return setMsg("Enter your email to get a sign-in link.");
+    if (!email.includes("@")) return setMsg("Enter your email.");
+    if (password.length < (mode === "create" ? 8 : 1)) {
+      return setMsg(mode === "create" ? "Use a password of at least 8 characters." : "Enter your password.");
+    }
     setBusy(true);
     setMsg(null);
-    const { error: err } = await sb().auth.signInWithOtp({
-      email: email.trim(),
-      options: { emailRedirectTo: window.location.origin },
-    });
+    const auth = sb().auth;
+    if (mode === "signin") {
+      const { error: err } = await auth.signInWithPassword({ email: email.trim(), password });
+      if (err) setMsg(explain(err.message, mode));
+    } else {
+      const { data, error: err } = await auth.signUp({ email: email.trim(), password });
+      if (err) setMsg(explain(err.message, mode));
+      else if (!data.session) setMsg("Email confirmation is still on in Supabase. Turn off Confirm email, then sign in.");
+    }
     setBusy(false);
-    if (err) return setMsg(`Couldn't send the link: ${err.message}`);
-    setStage("sent");
-  };
-
-  const verify = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const token = code.replace(/\D/g, "");
-    if (token.length < 6) return setMsg("Enter the 6-digit code from the email.");
-    setBusy(true);
-    setMsg(null);
-    const { error: err } = await sb().auth.verifyOtp({ email: email.trim(), token, type: "email" });
-    setBusy(false);
-    if (err) setMsg("That code didn't work. Check the newest email or send a new one.");
   };
 
   return (
@@ -46,52 +53,53 @@ export function Login() {
           <OttoMark size={44} />
           <span className="brand text-[26px] text-ink">OTTO</span>
         </div>
-        <h1 className="text-[28px] font-semibold leading-tight tracking-[-0.02em]">
-          {stage === "email" ? "Sign in to Otto" : "Check your email"}
+        <h1 className="text-[28px] leading-tight font-semibold tracking-[-0.02em]">
+          {mode === "signin" ? "Sign in to Otto" : "Create your Otto account"}
         </h1>
-        <p className="mt-2 text-[16px] text-muted">
-          {stage === "email"
-            ? "Otto sends a sign-in link. No password."
-            : `Tap the link in the email to ${email}, or type the 6-digit code here. On iPhone, use the code so you stay signed in on your home screen.`}
-        </p>
+        {mode === "create" && <p className="mt-2 text-[16px] text-muted">The first account becomes Otto&apos;s owner.</p>}
 
-        {stage === "email" ? (
-          <form onSubmit={send} className="mt-8 space-y-3">
-            <input
-              type="email"
-              inputMode="email"
-              autoComplete="email"
-              placeholder="you@example.com"
-              className={inputClass}
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              aria-label="Email"
-            />
-            <Button type="submit" variant="primary" size="lg" className="w-full" disabled={busy}>
-              {busy ? "Sending link..." : "Send sign-in link"}
-            </Button>
-          </form>
-        ) : (
-          <form onSubmit={verify} className="mt-8 space-y-3">
-            <input
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              placeholder="123456"
-              className={`${inputClass} num text-center text-[22px] tracking-[0.3em]`}
-              value={code}
-              maxLength={10}
-              onChange={(e) => setCode(e.target.value)}
-              aria-label="6-digit code"
-            />
-            <Button type="submit" variant="primary" size="lg" className="w-full" disabled={busy}>
-              {busy ? "Checking code..." : "Sign in with code"}
-            </Button>
-            <button type="button" className="min-h-11 w-full text-[15px] text-muted" onClick={() => setStage("email")}>
-              Use a different email
-            </button>
-          </form>
+        <form onSubmit={submit} className="mt-8 space-y-3">
+          <input
+            type="email"
+            name="email"
+            inputMode="email"
+            autoComplete="username"
+            autoCapitalize="none"
+            placeholder="you@example.com"
+            className={inputClass}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            aria-label="Email"
+          />
+          <input
+            type="password"
+            name="password"
+            autoComplete={mode === "signin" ? "current-password" : "new-password"}
+            placeholder="Password"
+            className={inputClass}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            aria-label="Password"
+          />
+          <Button type="submit" variant="primary" size="lg" className="w-full" disabled={busy}>
+            {busy ? (mode === "signin" ? "Signing in..." : "Creating account...") : mode === "signin" ? "Sign in" : "Create account"}
+          </Button>
+        </form>
+        {msg && (
+          <p className="mt-4 text-[15px] text-late" role="alert">
+            {msg}
+          </p>
         )}
-        {msg && <p className="mt-4 text-[15px] text-late" role="alert">{msg}</p>}
+        <button
+          type="button"
+          className="mt-4 min-h-11 w-full text-[15px] text-muted"
+          onClick={() => {
+            setMode(mode === "signin" ? "create" : "signin");
+            setMsg(null);
+          }}
+        >
+          {mode === "signin" ? "First time? Create your account" : "Already have an account? Sign in"}
+        </button>
       </div>
     </main>
   );
