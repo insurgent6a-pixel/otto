@@ -3,7 +3,7 @@
 import { useRef } from "react";
 import { store, useOtto } from "@/lib/store";
 import { completeWithReward, postpone } from "@/lib/actions";
-import { dueLabel, estimateLabel, relativeDayLabel } from "@/engine/format";
+import { dueLabel, estimateLabel, relativeDayInline, relativeDayLabel } from "@/engine/format";
 import { localDate, localTime } from "@/engine/time";
 import { formatIdrShort } from "@/engine/money";
 import { describeRrule } from "@/engine/repeat";
@@ -47,9 +47,9 @@ export function TaskMeta({ task, time, extra }: { task: Task; time?: string | nu
     );
   }
   if (task.status === "waiting" && task.follow_up) {
-    bits.push(<span key="fu">back {relativeDayLabel(task.follow_up, today).replace(/^[A-Z]/, (c) => (c === "T" || c === "Y" ? c.toLowerCase() : c))}</span>);
+    bits.push(<span key="fu">back {relativeDayInline(task.follow_up, today)}</span>);
   }
-  if (task.ready_by) bits.push(<span key="ready">ready {relativeDayLabel(task.ready_by, today)}</span>);
+  if (task.ready_by) bits.push(<span key="ready">ready {relativeDayInline(task.ready_by, today)}</span>);
   if (task.estimate_min) bits.push(<span key="est">{estimateLabel(task)}</span>);
   if (task.value_idr) bits.push(<span key="val" className="num">{formatIdrShort(task.value_idr)}</span>);
   if (task.rrule) bits.push(<span key="rr">{describeRrule(task.rrule)}</span>);
@@ -139,7 +139,7 @@ export function TaskRow({
         >
           <span className={cx("flex items-center gap-2 text-[16px] leading-snug", done && "text-muted line-through decoration-1")}>
             <span className="min-w-0 truncate">{task.title}</span>
-            {task.forced && <span className="shrink-0 rounded-full bg-fire-soft px-2 text-[11px] font-medium text-fire">Locked in</span>}
+            {task.forced && <span className="shrink-0 rounded-full bg-fire-soft px-2 text-[11px] font-medium text-fire-ink">Locked in</span>}
             <FromClaude createdAt={task.created_at} source={task.source} />
           </span>
           {!compact && <TaskMeta task={task} time={time} />}

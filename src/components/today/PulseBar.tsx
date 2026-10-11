@@ -24,14 +24,14 @@ export function PulseBar() {
   return (
     <div className="safe-top sticky top-0 z-30 -mx-4 border-b border-line/70 bg-[var(--bar-bg)] backdrop-blur-xl sm:-mx-6 md:mx-0 md:rounded-b-[18px] md:border-x">
       <div className="no-scrollbar flex gap-2 overflow-x-auto px-4 py-2.5 sm:px-6">
-        <Pill label={`${p.streak} day streak`} className="text-fire">
+        <Pill label={`${p.streak} day streak`} className="text-fire-ink">
           <IconFlame size={17} />
           <span className="num font-semibold">{p.streak}</span>
           <span className="font-medium">day streak</span>
         </Pill>
         <Pill label={`Score ${p.score}`}>
           <Ring value={p.score / 100} size={17} stroke={3} />
-          <span className="num font-semibold text-fire">{p.score}</span>
+          <span className="num font-semibold text-fire-ink">{p.score}</span>
           <span className="pulse-label text-muted">score</span>
         </Pill>
         <Pill label={`${p.doneCount} of ${p.dailyGoal} done today`}>

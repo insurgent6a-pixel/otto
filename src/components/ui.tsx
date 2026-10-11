@@ -18,7 +18,7 @@ const VARIANTS: Record<Variant, string> = {
   outline: "bg-panel text-ink border border-line hoverable",
   danger: "bg-transparent text-late border border-line hoverable",
   onAccent: "bg-accent-ink text-accent",
-  onAccentSoft: "bg-[color-mix(in_oklab,var(--accent-ink)_16%,transparent)] text-accent-ink",
+  onAccentSoft: "bg-accent-deep text-accent-ink",
 };
 
 export function Button({
@@ -114,14 +114,16 @@ export function Fold({
   children: ReactNode;
   hint?: ReactNode;
 }) {
-  const [open, setOpen] = useState(defaultOpen);
-  useEffect(() => {
-    if (!storageKey) return;
+  // Folds mount only on the client after data loads, so reading storage here never mismatches SSR.
+  const [open, setOpen] = useState(() => {
+    if (!storageKey) return defaultOpen;
     try {
       const v = sessionStorage.getItem(`otto.fold.${storageKey}`);
-      if (v != null) setOpen(v === "1");
-    } catch {}
-  }, [storageKey]);
+      return v == null ? defaultOpen : v === "1";
+    } catch {
+      return defaultOpen;
+    }
+  });
   const toggle = () => {
     setOpen((o) => {
       if (storageKey) {

@@ -63,3 +63,9 @@ export function relativeDayLabel(date: string, today: string): string {
   const { m, d: day } = parseDate(date);
   return `${WEEKDAYS[isoWeekday(date) - 1]} ${day} ${MONTHS[m - 1]}`;
 }
+
+/** relativeDayLabel for mid-sentence use: "back tomorrow", "back Thu 15 Oct". */
+export function relativeDayInline(date: string, today: string): string {
+  const label = relativeDayLabel(date, today);
+  return label === "Today" || label === "Tomorrow" || label === "Yesterday" ? label.toLowerCase() : label;
+}

@@ -48,3 +48,14 @@ describe("format", () => {
     expect(relativeDayLabel("2027-01-03", today)).toBe("Sun 3 Jan");
   });
 });
+
+import { relativeDayInline } from "./format";
+
+describe("relativeDayInline", () => {
+  it("lowercases the relative words only", () => {
+    expect(relativeDayInline("2026-10-13", "2026-10-12")).toBe("tomorrow");
+    expect(relativeDayInline("2026-10-12", "2026-10-12")).toBe("today");
+    expect(relativeDayInline("2026-10-11", "2026-10-12")).toBe("yesterday");
+    expect(relativeDayInline("2026-10-15", "2026-10-12")).toBe("Thu 15 Oct");
+  });
+});

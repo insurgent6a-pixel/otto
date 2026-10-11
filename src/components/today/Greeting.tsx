@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useOtto } from "@/lib/store";
-import { greeting, energyCheckLines, morningLine } from "@/engine/messages";
+import { greeting, energyCheckLines, morningLine, completionGoalLine, pickScoreMessage, GOAL_HIT_LINE } from "@/engine/messages";
 import { localDate, tzLabel } from "@/engine/time";
 import { OttoLine } from "../ui";
 import { IconSettings } from "../Icons";
@@ -18,12 +18,24 @@ export function Greeting() {
   const tasks = useOtto((s) => s.tasks);
   const energy = useEnergy();
   const today = useToday();
+  const lastCompletion = useOtto((s) => s.lastCompletion);
+  const scores = useOtto((s) => s.scores);
   const tz = settings.timezone;
   const dateText = new Intl.DateTimeFormat("en-GB", { ...LONG_DATE, timeZone: tz }).format(new Date(now));
   const goal = goals.find((g) => g.is_current)?.name ?? null;
 
+  const todayDate = localDate(now, tz);
+  const lastDayLow = (scores.filter((r) => r.day < todayDate && r.score != null).at(-1)?.score ?? 100) < 40;
   let line: string;
-  if (energy.level === "ok" && today.next) {
+  if (lastCompletion && now - lastCompletion.at < 90_000) {
+    // Spec 9: every completion ties back to the goal; after a low day it gets a hype line instead.
+    if (lastCompletion.hitGoal) line = GOAL_HIT_LINE;
+    else if (lastDayLow) {
+      line =
+        pickScoreMessage({ score: 0, delta: null, streakDays: 0, goal, tone: settings.tone, recent: [], toughLoveUsedToday: true, justCompleted: true, lastDayLow: true, rand: () => 0 }).text ||
+        completionGoalLine(goal);
+    } else line = completionGoalLine(goal);
+  } else if (energy.level === "ok" && today.next) {
     line = energyCheckLines.answer("ok", today.next.displayTitle, today.next.reasons.join(", "));
   } else if (energy.level) {
     line = energyCheckLines.answer(energy.level);

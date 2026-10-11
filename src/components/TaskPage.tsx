@@ -17,14 +17,14 @@ export function TaskPage() {
   const doneRef = useRef<HTMLButtonElement>(null);
   if (!task) {
     return (
-      <div className="safe-top mx-auto max-w-xl px-4 pt-8">
+      <div className="safe-top mx-auto max-w-xl px-4 [--pad-top:2rem]">
         <Empty action={<Link href="/" className="font-medium text-accent">Open Today</Link>}>This task is gone. It may have been deleted.</Empty>
       </div>
     );
   }
   const open = task.status === "todo" || task.status === "waiting";
   return (
-    <div className="safe-top mx-auto max-w-xl px-4 pt-6 pb-10">
+    <div className="safe-top mx-auto max-w-xl px-4 pb-10 [--pad-top:1.5rem]">
       <Link href="/" className="inline-flex min-h-11 items-center text-[15px] text-muted">
         Back to Today
       </Link>

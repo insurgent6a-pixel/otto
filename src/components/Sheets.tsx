@@ -7,7 +7,10 @@ import { addDays, localDate } from "@/engine/time";
 import { KNOWN_NAMES } from "@/engine/fuzzy";
 import { followUpTiming, suggestFollowUpDays } from "@/engine/learning";
 import { relativeDayLabel } from "@/engine/format";
-import { QuickAddSheet } from "./QuickAdd";
+import { lazy, Suspense } from "react";
+
+// The quick-add parser carries chrono-node; loading it on first open keeps it out of the first paint.
+const QuickAddSheet = lazy(() => import("./QuickAdd").then((m) => ({ default: m.QuickAddSheet })));
 import { TaskEditor } from "./TaskEditor";
 import { Button, Field, Sheet, inputClass } from "./ui";
 import { useTask } from "./usePulse";
@@ -18,7 +21,11 @@ export function Sheets() {
   if (!sheet) return null;
   switch (sheet.kind) {
     case "add":
-      return <QuickAddSheet preset={sheet.preset} onClose={close} />;
+      return (
+        <Suspense fallback={null}>
+          <QuickAddSheet preset={sheet.preset} onClose={close} />
+        </Suspense>
+      );
     case "edit":
       return <EditSheet taskId={sheet.taskId} onClose={close} />;
     case "shrink":

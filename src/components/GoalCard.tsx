@@ -129,7 +129,7 @@ export function GoalCard() {
             <p className="text-[22px] leading-tight font-semibold tracking-[-0.015em]">{current.name}</p>
             {current.target_idr ? (
               <div className="mt-3">
-                <div className="h-3 overflow-hidden rounded-full bg-sun-soft" role="progressbar" aria-valuenow={pct ?? 0} aria-valuemin={0} aria-valuemax={100}>
+                <div className="h-3 overflow-hidden rounded-full bg-sun-soft" role="progressbar" aria-label={`Saved toward ${current.name}`} aria-valuenow={pct ?? 0} aria-valuemin={0} aria-valuemax={100}>
                   <div className="h-full rounded-full bg-sun transition-[width] duration-500" style={{ width: `${pct}%` }} />
                 </div>
                 <div className="mt-2 flex flex-wrap items-baseline justify-between gap-x-3">

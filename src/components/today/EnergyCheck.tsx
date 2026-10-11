@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { store, useOtto } from "@/lib/store";
 import { haptic } from "@/lib/rewards";
 import { energyCheckLines, ENERGY_LABEL } from "@/engine/messages";
@@ -16,9 +16,7 @@ const LEVELS: { level: EnergyLevel; bars: 1 | 2 | 3 }[] = [
   { level: "high", bars: 3 },
 ];
 
-function skipKey(day: string) {
-  return `otto.afternoonSkip.${day}`;
-}
+const SKIP_KEY = "otto.afternoonSkip";
 
 export function EnergyCheck() {
   const energy = useEnergy();
@@ -26,14 +24,15 @@ export function EnergyCheck() {
   const tz = useOtto((s) => s.settings.timezone);
   const hapticsOn = useOtto((s) => s.settings.haptics);
   const [editing, setEditing] = useState(false);
-  const [skipped, setSkipped] = useState(false);
   const today = localDate(now, tz);
-
-  useEffect(() => {
+  const [skippedDay, setSkippedDay] = useState<string | null>(() => {
     try {
-      setSkipped(localStorage.getItem(skipKey(today)) === "1");
-    } catch {}
-  }, [today]);
+      return localStorage.getItem(SKIP_KEY);
+    } catch {
+      return null;
+    }
+  });
+  const skipped = skippedDay === today;
 
   const afternoon =
     energy.level != null && energy.at != null && !skipped && localMinutes(now, tz) >= 13 * 60 && localMinutes(energy.at, tz) < 12 * 60;
@@ -45,9 +44,9 @@ export function EnergyCheck() {
   };
 
   const skip = () => {
-    setSkipped(true);
+    setSkippedDay(today);
     try {
-      localStorage.setItem(skipKey(today), "1");
+      localStorage.setItem(SKIP_KEY, today);
     } catch {}
   };
 

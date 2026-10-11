@@ -125,14 +125,26 @@ function Gauge({ score }: { score: number }) {
         />
       </svg>
       <div className="absolute inset-x-0 bottom-0 text-center">
-        <p className="num text-[30px] leading-none font-semibold text-fire">{score}</p>
+        <p className="num text-[30px] leading-none font-semibold text-fire-ink">{score}</p>
         <p className="brand mt-1 text-[9px] text-muted">SCORE</p>
       </div>
     </div>
   );
 }
 
-/** Score message: picked once per day per band, and the history persists so it never repeats. */
+/** Small seeded PRNG so a message pick is stable for a given day and band. */
+function seeded(seed: string) {
+  let h = 2166136261;
+  for (let i = 0; i < seed.length; i++) h = Math.imul(h ^ seed.charCodeAt(i), 16777619);
+  return () => {
+    h = Math.imul(h ^ (h >>> 15), 2246822507);
+    h = Math.imul(h ^ (h >>> 13), 3266489909);
+    h ^= h >>> 16;
+    return (h >>> 0) / 4294967296;
+  };
+}
+
+/** Score message: stable per day and band, and the history persists so it never repeats. */
 function useScoreMessage(score: number, delta: number | null, streakDays: number) {
   const settings = useOtto((s) => s.settings);
   const goals = useOtto((s) => s.goals);
@@ -142,41 +154,36 @@ function useScoreMessage(score: number, delta: number | null, streakDays: number
   const today = localDate(now, tz);
   const goal = goals.find((g) => g.is_current)?.name ?? null;
   const band = score >= 70 ? "high" : score >= 40 ? "mid" : "low";
-  const [text, setText] = useState<string>("");
+  // Snapshot at mount: writing the pick back to memory must not re-pick a different line.
+  const [memory] = useState(() => settings.state ?? {});
+  const lastDayLow = (scores.filter((r) => r.day < today && r.score != null).at(-1)?.score ?? 100) < 40;
+  const picked = useMemo(
+    () =>
+      pickScoreMessage({
+        score,
+        delta,
+        streakDays,
+        goal,
+        tone: settings.tone,
+        recent: memory.recent ?? [],
+        toughLoveUsedToday: memory.tough_love_day === today,
+        justCompleted: false,
+        lastDayLow,
+        rand: seeded(`${today}:${band}`),
+      }),
+    [score, delta, streakDays, goal, settings.tone, memory, today, band, lastDayLow],
+  );
   useEffect(() => {
-    const key = `otto.scoremsg.${today}.${band}`;
-    try {
-      const cached = sessionStorage.getItem(key);
-      if (cached) return setText(cached);
-    } catch {}
-    const mem = settings.state ?? {};
-    const yesterday = scores.find((r) => r.day < today && r.score != null);
-    const picked = pickScoreMessage({
-      score,
-      delta,
-      streakDays,
-      goal,
-      tone: settings.tone,
-      recent: mem.recent ?? [],
-      toughLoveUsedToday: mem.tough_love_day === today,
-      justCompleted: false,
-      lastDayLow: (yesterday?.score ?? 100) < 40,
-      rand: Math.random,
+    if (!picked.text) return;
+    const mem = store.state.settings.state ?? {};
+    void store.remember({
+      recent: [...(mem.recent ?? []), picked.text].slice(-5),
+      ...(picked.toughLove ? { tough_love_day: today } : {}),
     });
-    setText(picked.text);
-    try {
-      sessionStorage.setItem(key, picked.text);
-    } catch {}
-    if (picked.text) {
-      void store.remember({
-        recent: [...(mem.recent ?? []), picked.text].slice(-5),
-        ...(picked.toughLove ? { tough_love_day: today } : {}),
-      });
-    }
-    // Recompute only when the band or day changes, not on every score tick.
+    // Remember once per band and day, not on every score tick.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [today, band, goal]);
-  return text;
+  }, [band, today]);
+  return picked.text;
 }
 
 export function YourDay() {
@@ -206,7 +213,7 @@ export function YourDay() {
           <p className="mt-2 text-[14px] text-muted">{progressLine(p.doneCount, p.dailyGoal)}</p>
         </div>
       </div>
-      <p className="mt-3 flex items-center gap-1.5 text-[15px] font-medium text-fire">
+      <p className="mt-3 flex items-center gap-1.5 text-[15px] font-medium text-fire-ink">
         <IconFlame size={18} /> <span className="num">{p.streak}</span> {p.streak === 1 ? "day" : "days"} in a row
       </p>
       {message && <OttoLine className="mt-3">{message}</OttoLine>}
@@ -264,7 +271,7 @@ export function TodayPlan({ defaultOpen }: { defaultOpen: boolean }) {
                     )}
                   >
                     <span className={cx("min-w-0 flex-1 truncate", r.done && "line-through")}>{r.title}</span>
-                    {r.forced && <IconLock size={14} className="text-fire" aria-label="Locked in" />}
+                    {r.forced && <IconLock size={14} className="text-fire-ink" aria-label="Locked in" />}
                     {r.pinned && !r.forced && <IconPin size={14} className="text-muted" aria-label="Pinned" />}
                     <span className="num text-[12px] text-muted">{localTime(r.end, tz)}</span>
                   </button>

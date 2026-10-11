@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { store, useOtto } from "@/lib/store";
 import { completeWithReward, postpone, startTimer } from "@/lib/actions";
 import { effectiveStartBy } from "@/engine/startby";
 import { localDate, localTime, zonedInstant } from "@/engine/time";
 import { formatIdr, parseIdr } from "@/engine/money";
-import { parseQuickAdd } from "@/engine/parse";
 import { describeRrule } from "@/engine/repeat";
 import { scoreTask, reasonLine } from "@/engine/score";
 import { PROJECTS, type Project, type Task, type Status } from "@/engine/types";
@@ -15,9 +14,14 @@ import { Button, Field, LinkButton, OttoLine, Segmented, Toggle, cx, inputClass 
 import { IconCheck, IconPlay } from "./Icons";
 import { FromClaude } from "./today/NextCard";
 
+/** Local draft that resets when the saved value changes (Claude or another device edited it). */
 function useField<T>(value: T) {
   const [draft, setDraft] = useState(value);
-  useEffect(() => setDraft(value), [value]);
+  const [prev, setPrev] = useState(value);
+  if (value !== prev) {
+    setPrev(value);
+    setDraft(value);
+  }
   return [draft, setDraft] as const;
 }
 
@@ -98,7 +102,7 @@ export function TaskEditor({ task, onClose, compactHeader }: { task: Task; onClo
       {!compactHeader && (
         <div className="flex flex-wrap items-center gap-2">
           <FromClaude createdAt={task.created_at} source={task.source} />
-          {task.forced && <span className="rounded-full bg-fire-soft px-2.5 py-0.5 text-[12px] font-medium text-fire">Locked in</span>}
+          {task.forced && <span className="rounded-full bg-fire-soft px-2.5 py-0.5 text-[12px] font-medium text-fire-ink">Locked in</span>}
           {result.blocked && <span className="rounded-full bg-panel-2 px-2.5 py-0.5 text-[12px] text-muted">Waiting on another task</span>}
         </div>
       )}
@@ -294,11 +298,12 @@ export function TaskEditor({ task, onClose, compactHeader }: { task: Task; onClo
             setRepeatDraft(e.target.value);
             setRepeatErr(null);
           }}
-          onBlur={() => {
+          onBlur={async () => {
             const raw = repeatDraft.trim();
             if (!raw) return task.rrule && save({ rrule: null });
             if (task.rrule && raw === describeRrule(task.rrule)) return;
             const text = /^(every|setiap|tiap)\b/i.test(raw) ? raw : `every ${raw}`;
+            const { parseQuickAdd } = await import("@/engine/parse");
             const rule = parseQuickAdd(`x ${text}`, { now: new Date(), tz }).fields.rrule;
             if (!rule) return setRepeatErr("Couldn't read that. Try every mon wed fri.");
             save({ rrule: rule, series_id: task.series_id ?? task.id });

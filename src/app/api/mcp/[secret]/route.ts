@@ -6,7 +6,7 @@ import { buildSchedule } from "@/engine/schedule";
 import { scoreTask } from "@/engine/score";
 import { findBestMatch, fixNames } from "@/engine/fuzzy";
 import { addDays, localDate, localTime, zonedInstant } from "@/engine/time";
-import { dueLabel, relativeDayLabel } from "@/engine/format";
+import { dueLabel, relativeDayInline, relativeDayLabel } from "@/engine/format";
 import { PROJECTS, type Task } from "@/engine/types";
 
 // Otto's own MCP server (spec 13, phase 4b). Stateless Streamable HTTP: every POST is one JSON-RPC message.
@@ -112,9 +112,9 @@ async function callTool(name: string, args: Json): Promise<string> {
       if (error) return `Couldn't add them: ${error.message}`;
       const lines = (data ?? []).map((t) => {
         const bits = [t.title];
-        if (t.scheduled_at) bits.push(`${relativeDayLabel(localDate(t.scheduled_at, tz), today)} ${localTime(t.scheduled_at, tz)}`);
+        if (t.scheduled_at) bits.push(`${relativeDayInline(localDate(t.scheduled_at, tz), today)} ${localTime(t.scheduled_at, tz)}`);
         if (t.deadline) bits.push(dueLabel(t.deadline, today, t.deadline_confirmed));
-        if (t.status === "waiting") bits.push(`waiting, back ${t.follow_up ? relativeDayLabel(t.follow_up, today) : "soon"}`);
+        if (t.status === "waiting") bits.push(`waiting, back ${t.follow_up ? relativeDayInline(t.follow_up, today) : "soon"}`);
         return `- ${bits.join(", ")}.`;
       });
       return `Added ${lines.length}.\n${lines.join("\n")}`;
@@ -129,7 +129,7 @@ async function callTool(name: string, args: Json): Promise<string> {
     case "list_waiting": {
       const waiting = st.tasks.filter((t) => t.status === "waiting").sort((a, b) => (a.follow_up ?? "9").localeCompare(b.follow_up ?? "9"));
       if (!waiting.length) return "Not waiting on anyone.";
-      return waiting.map((t) => `- ${t.title}${t.waiting_on ? `, on ${t.waiting_on}` : ""}, back ${t.follow_up ? relativeDayLabel(t.follow_up, today) : "with no date"}.`).join("\n");
+      return waiting.map((t) => `- ${t.title}${t.waiting_on ? `, on ${t.waiting_on}` : ""}, back ${t.follow_up ? relativeDayInline(t.follow_up, today) : "with no date"}.`).join("\n");
     }
     case "move_task": {
       const task = find(st, String(args.task ?? ""));
@@ -142,7 +142,7 @@ async function callTool(name: string, args: Json): Promise<string> {
       const patch = time ? { scheduled_at: zonedInstant(day, time, tz).toISOString() } : { plan_for: day };
       const { error } = await db.from("tasks").update(patch).eq("id", task.id);
       if (error) return `Couldn't move it: ${error.message}`;
-      return `Moved ${task.title} to ${relativeDayLabel(day, today)}${time ? ` ${time}` : ""}.`;
+      return `Moved ${task.title} to ${relativeDayInline(day, today)}${time ? ` ${time}` : ""}.`;
     }
     case "complete_task": {
       const task = find(st, String(args.task ?? ""));

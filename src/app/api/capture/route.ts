@@ -24,7 +24,7 @@ export async function POST(req: Request) {
   const title = parsed.title || fixNames(clean);
   const { error } = await db.from("tasks").insert({ ...parsed.fields, title, user_id: s.owner_id, source: "siri", raw_text: raw });
   if (error) return new Response(`Couldn't save it: ${error.message}`, { status: 500 });
-  const extras = parsed.chips.map((c) => c.label.toLowerCase()).slice(0, 2);
+  const extras = parsed.chips.map((c) => c.label.charAt(0).toLowerCase() + c.label.slice(1)).slice(0, 2);
   return new Response(`Added to Otto: ${title}${extras.length ? `, ${extras.join(", ")}` : ""}.`, {
     headers: { "Content-Type": "text/plain; charset=utf-8" },
   });

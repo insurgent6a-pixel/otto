@@ -12,7 +12,7 @@ export function ListLayout({ header, children }: { header: ReactNode; children: 
   const task = useTask(selectedId);
   return (
     <div className="md:grid md:min-h-dvh md:grid-cols-[minmax(0,1fr)_400px]">
-      <div className="safe-top mx-auto w-full max-w-3xl px-4 pt-4 pb-8 sm:px-6 md:px-8 md:pt-6">
+      <div className="safe-top mx-auto w-full max-w-3xl px-4 [--pad-top:1rem] pb-8 sm:px-6 md:px-8 md:[--pad-top:1.5rem]">
         {header}
         {children}
       </div>

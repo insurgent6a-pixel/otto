@@ -12,13 +12,15 @@ import { Button, cx } from "../ui";
 import { useEnergy } from "../usePulse";
 import { useLongPress } from "../useGestures";
 
-function useTick(active: boolean) {
-  const [, setT] = useState(0);
+/** Wall clock that ticks every second while a timer runs. */
+function useClock(active: boolean) {
+  const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     if (!active) return;
-    const id = setInterval(() => setT((x) => x + 1), 1000);
+    const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
   }, [active]);
+  return now;
 }
 
 export function FromClaude({ createdAt, source, onAccent }: { createdAt: string; source: string; onAccent?: boolean }) {
@@ -28,7 +30,7 @@ export function FromClaude({ createdAt, source, onAccent }: { createdAt: string;
     <span
       className={cx(
         "inline-flex h-6 items-center rounded-full px-2 text-[12px] font-medium",
-        onAccent ? "bg-[color-mix(in_oklab,var(--accent-ink)_18%,transparent)] text-accent-ink" : "bg-[color-mix(in_oklab,var(--plum)_14%,transparent)] text-plum",
+        onAccent ? "bg-accent-deep text-accent-ink" : "bg-[color-mix(in_oklab,var(--plum)_14%,transparent)] text-plum",
       )}
     >
       From Claude
@@ -43,20 +45,21 @@ export function NextCard({ ranked }: { ranked: RankedTask | null }) {
   const tz = useOtto((s) => s.settings.timezone);
   const blocks = useOtto((s) => s.blocks);
   const energy = useEnergy();
-  const [later, setLater] = useState(false);
+  const [laterFor, setLaterFor] = useState<string | null>(null);
   const doneRef = useRef<HTMLButtonElement>(null);
   const task = ranked?.task ?? null;
   const running = timer && task && timer.taskId === task.id ? timer : null;
-  useTick(Boolean(running));
-  useEffect(() => setLater(false), [task?.id]);
+  const clock = useClock(Boolean(running));
+  const later = laterFor != null && laterFor === task?.id;
+  const setLater = (v: boolean) => setLaterFor(v ? (task?.id ?? null) : null);
   const longPress = useLongPress(() => task && store.openSheet({ kind: "edit", taskId: task.id }));
 
   if (!task || !ranked) {
     return (
       <section className="mt-4 rounded-[22px] bg-accent p-5 text-accent-ink sm:p-6" aria-label="Do this next">
-        <p className="text-[14px] opacity-80">Do this next</p>
+        <p className="text-[14px]">Do this next</p>
         <h2 className="mt-2 text-[24px] leading-tight font-semibold">Nothing left for today.</h2>
-        <p className="mt-2 text-[15px] opacity-85">Add something with the + button, or take the win and rest.</p>
+        <p className="mt-2 text-[15px]">Add something with the + button, or take the win and rest.</p>
         <Button variant="onAccent" size="lg" className="mt-5" onClick={() => store.openSheet({ kind: "add" })}>
           Add a task
         </Button>
@@ -68,7 +71,7 @@ export function NextCard({ ranked }: { ranked: RankedTask | null }) {
   const isCompleting = Boolean(completing[task.id]);
   const forcedBlock = task.forced ? blocks.find((b) => b.task_id === task.id && b.source === "force") : null;
   const forcedTime = forcedBlock ? localTime(forcedBlock.start_at, tz) : null;
-  const left = running ? Math.max(0, running.endsAt - Date.now()) : 0;
+  const left = running ? Math.max(0, running.endsAt - clock) : 0;
   const progress = running ? 1 - left / (running.minutes * 60000) : 0;
   const mm = Math.floor(left / 60000);
   const ss = Math.floor((left % 60000) / 1000);
@@ -84,7 +87,7 @@ export function NextCard({ ranked }: { ranked: RankedTask | null }) {
       data-task-id={task.id}
     >
       <div className="flex items-center gap-2">
-        <p className="min-w-0 flex-1 truncate text-[14px] opacity-85">{labelParts.join(" · ")}</p>
+        <p className="min-w-0 flex-1 truncate text-[14px]">{labelParts.join(" · ")}</p>
         <FromClaude createdAt={task.created_at} source={task.source} onAccent />
         <button
           type="button"
@@ -92,7 +95,7 @@ export function NextCard({ ranked }: { ranked: RankedTask | null }) {
           aria-pressed={focusMode}
           className={cx(
             "h-8 shrink-0 rounded-full px-3 text-[13px] font-medium transition-[background-color] duration-150",
-            focusMode ? "bg-accent-ink text-accent" : "bg-[color-mix(in_oklab,var(--accent-ink)_16%,transparent)]",
+            focusMode ? "bg-accent-ink text-accent" : "bg-accent-deep",
           )}
         >
           Just this one
@@ -107,18 +110,18 @@ export function NextCard({ ranked }: { ranked: RankedTask | null }) {
         )}
         {ranked.fiveMin ? `5 minute version: ${ranked.displayTitle}` : ranked.displayTitle}
       </h2>
-      {task.next_action && !ranked.fiveMin && <p className="mt-2 text-[16px] opacity-90">First step: {task.next_action}</p>}
+      {task.next_action && !ranked.fiveMin && <p className="mt-2 text-[16px]">First step: {task.next_action}</p>}
       {task.forced ? (
-        <p className="mt-2 flex items-center gap-1.5 text-[15px] opacity-90">
+        <p className="mt-2 flex items-center gap-1.5 text-[15px]">
           <IconLock size={16} /> {forcedMessage(task, forcedTime)}
         </p>
       ) : (
-        ranked.reasonLine && <p className="mt-2 text-[15px] opacity-80">{ranked.reasonLine}</p>
+        ranked.reasonLine && <p className="mt-2 text-[15px]">{ranked.reasonLine}</p>
       )}
 
       {running && (
         <div className="mt-4" aria-label="Focus timer">
-          <div className="h-1 overflow-hidden rounded-full bg-[color-mix(in_oklab,var(--accent-ink)_22%,transparent)]">
+          <div className="h-1 overflow-hidden rounded-full bg-accent-deep">
             <div className="h-full bg-accent-ink transition-[width] duration-1000 ease-linear" style={{ width: `${progress * 100}%` }} />
           </div>
         </div>
@@ -159,7 +162,7 @@ export function NextCard({ ranked }: { ranked: RankedTask | null }) {
                 <span className="num text-[18px]">
                   {mm}:{String(ss).padStart(2, "0")}
                 </span>
-                <span className="text-[15px] opacity-85">Stop</span>
+                <span className="text-[15px]">Stop</span>
               </Button>
             ) : (
               <Button variant="onAccentSoft" size="lg" onClick={() => startTimer(task, minutes)}>
@@ -169,7 +172,7 @@ export function NextCard({ ranked }: { ranked: RankedTask | null }) {
           </div>
           <div className="mt-3 min-h-11">
             {!later ? (
-              <button type="button" className="min-h-11 text-[15px] font-medium underline-offset-4 opacity-85 hover:underline" onClick={() => setLater(true)}>
+              <button type="button" className="min-h-11 text-[15px] font-medium underline-offset-4 hover:underline" onClick={() => setLater(true)}>
                 Not right now
               </button>
             ) : (

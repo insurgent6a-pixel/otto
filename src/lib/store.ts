@@ -89,6 +89,8 @@ export interface StoreState {
   snoozed: Record<string, number>;
   completing: Record<string, true>;
   celebrate: { kind: "goal_reached"; goalId: string } | null;
+  /** Drives Otto's line right after a completion. */
+  lastCompletion: { at: number; hitGoal: boolean } | null;
 }
 
 export type SheetState =
@@ -125,6 +127,10 @@ function writeLocal(key: string, value: unknown) {
     // Private mode or full storage: the preference just won't stick.
   }
 }
+
+const CACHE_KEY = "otto.cache";
+
+type CachedState = Pick<StoreState, "settings" | "tasks" | "goals" | "checkins" | "blocks" | "busy" | "scores" | "events"> & { userId: string };
 
 const SAVE_FAILED = "Couldn't save. Check your connection and try again.";
 
@@ -175,6 +181,7 @@ class OttoStore {
     snoozed: {},
     completing: {},
     celebrate: null,
+    lastCompletion: null,
   };
 
   private listeners = new Set<() => void>();
@@ -211,6 +218,8 @@ class OttoStore {
   start() {
     if (this.started || typeof window === "undefined") return;
     this.started = true;
+    // Tests drive the store directly; production builds never expose it.
+    if (process.env.NODE_ENV !== "production") (window as unknown as { __otto: OttoStore }).__otto = this;
     this.set({
       focusMode: readLocal("otto.focus", false),
       theme: readLocal("otto.theme", "system"),
@@ -236,6 +245,7 @@ class OttoStore {
       this.set({ session });
       if (!session) {
         this.teardown();
+        writeLocal(CACHE_KEY, null);
         this.set({ phase: "signed_out" });
       } else if (had !== session.user.id) {
         void this.boot();
@@ -247,12 +257,21 @@ class OttoStore {
   }
 
   private async boot() {
-    this.set({ phase: "claiming" });
+    const userId = this.state.session?.user.id;
+    // Paint the last known state at once; the network refresh below replaces it.
+    const cached = readLocal<CachedState | null>(CACHE_KEY, null);
+    if (cached && cached.userId === userId) {
+      const { userId: _owner, ...rest } = cached;
+      void _owner;
+      this.set({ ...rest, phase: "ready" });
+    } else {
+      this.set({ phase: "claiming" });
+    }
     const { error } = await sb().rpc("otto_claim");
     if (error) {
       if (/another account/i.test(error.message)) {
         this.set({ phase: "foreign", error: error.message });
-      } else {
+      } else if (this.state.phase !== "ready") {
         this.set({ phase: "signed_out", error: `Couldn't open Otto: ${error.message}` });
       }
       return;
@@ -298,6 +317,25 @@ class OttoStore {
       scores: ((scores.data ?? []) as ScoreRow[]).reverse(),
       events: (events.data ?? []) as TaskEvent[],
     });
+    this.saveCache();
+  }
+
+  private saveCache() {
+    const s = this.state;
+    if (!s.session) return;
+    const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString();
+    const snapshot: CachedState = {
+      userId: s.session.user.id,
+      settings: s.settings,
+      tasks: s.tasks.filter((t) => !t.id.startsWith("tmp-")),
+      goals: s.goals,
+      checkins: s.checkins.filter((c) => c.at >= weekAgo),
+      blocks: s.blocks,
+      busy: s.busy,
+      scores: s.scores.slice(-30),
+      events: s.events.filter((e) => e.at >= weekAgo),
+    };
+    writeLocal(CACHE_KEY, snapshot);
   }
 
   private subscribeRealtime() {
@@ -327,7 +365,10 @@ class OttoStore {
       .on("postgres_changes", { event: "*", schema: "public", table: "otto_settings" }, (p) => {
         if (p.eventType !== "DELETE") this.set({ settings: { ...this.state.settings, ...(p.new as Partial<SettingsRow>) } });
       })
-      .subscribe();
+      .subscribe((status) => {
+        // Rows written while the socket was joining (or reconnecting) never arrive as events.
+        if (status === "SUBSCRIBED") void this.loadAll();
+      });
   }
 
   // ---------- UI state ----------

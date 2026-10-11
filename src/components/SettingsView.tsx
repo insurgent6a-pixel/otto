@@ -61,6 +61,7 @@ function useSetting() {
 
 function TimezoneSection() {
   const tz = useOtto((s) => s.settings.timezone);
+  const now = useOtto((s) => s.now);
   const [query, setQuery] = useState("");
   const all = useMemo(() => {
     try {
@@ -77,7 +78,7 @@ function TimezoneSection() {
     if (ok) store.toast(tzChangedLine(tzLabel(next)), { otto: true });
     setQuery("");
   };
-  const nowLocal = `${localTime(Date.now(), tz)} ${tzLabel(tz)}`;
+  const nowLocal = `${localTime(now, tz)} ${tzLabel(tz)}`;
   return (
     <Section title="Time zone" id="timezone">
       <p className="text-[15px] text-muted">
@@ -97,7 +98,7 @@ function TimezoneSection() {
             )}
           >
             <span className="text-[17px] font-semibold">{z.label}</span>
-            <span className={cx("text-[12px]", tz === z.tz ? "opacity-85" : "text-muted")}>{z.hint}</span>
+            <span className={cx("text-[12px]", tz === z.tz ? undefined : "text-muted")}>{z.hint}</span>
           </button>
         ))}
       </div>
@@ -116,7 +117,7 @@ function TimezoneSection() {
               <button type="button" onClick={() => void choose(z)} className="flex min-h-11 w-full items-center justify-between px-3 text-left text-[15px] hoverable">
                 <span>{z.replace(/_/g, " ")}</span>
                 <span className="num text-[13px] text-muted">
-                  {localTime(Date.now(), z)} {tzLabel(z)}
+                  {localTime(now, z)} {tzLabel(z)}
                 </span>
               </button>
             </li>
@@ -272,8 +273,9 @@ function OttoSection() {
 function RemindersSection() {
   const tz = useOtto((x) => x.settings.timezone);
   const email = useOtto((x) => x.settings.fallback_email);
-  const [support, setSupport] = useState<PushSupport>("unsupported");
-  const [enabled, setEnabled] = useState(false);
+  const now = useOtto((x) => x.now);
+  const [support] = useState<PushSupport>(() => pushSupport());
+  const [enabled, setEnabled] = useState(() => typeof Notification !== "undefined" && Notification.permission === "granted");
   const [lastOk, setLastOk] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -284,9 +286,12 @@ function RemindersSection() {
   };
 
   useEffect(() => {
-    setSupport(pushSupport());
-    setEnabled(typeof Notification !== "undefined" && Notification.permission === "granted");
-    void refresh();
+    void sb()
+      .from("push_subscriptions")
+      .select("last_ok_at")
+      .order("last_ok_at", { ascending: false, nullsFirst: false })
+      .limit(1)
+      .then(({ data }) => setLastOk((data?.[0]?.last_ok_at as string | null) ?? null));
   }, []);
 
   const turnOn = async () => {
@@ -315,7 +320,7 @@ function RemindersSection() {
     setBusy(false);
   };
 
-  const today = localDate(Date.now(), tz);
+  const today = localDate(now, tz);
   const last = lastOk ? `${localDate(lastOk, tz) === today ? "" : `${relativeDayLabel(localDate(lastOk, tz), today)} `}${localTime(lastOk, tz)}` : null;
 
   return (
@@ -450,7 +455,6 @@ function PipelinesSection() {
   const [templates, setTemplates] = useState<PipelineTemplate[]>([]);
   const [name, setName] = useState("");
   const [steps, setSteps] = useState("");
-  const tz = useOtto((x) => x.settings.timezone);
   const parsed = parsePipelineSteps(steps);
 
   const load = async () => {
@@ -458,11 +462,15 @@ function PipelinesSection() {
     setTemplates((data ?? []) as PipelineTemplate[]);
   };
   useEffect(() => {
-    void load();
+    void sb()
+      .from("pipeline_templates")
+      .select("*")
+      .order("created_at")
+      .then(({ data }) => setTemplates((data ?? []) as PipelineTemplate[]));
   }, []);
 
   const run = async (t: PipelineTemplate) => {
-    const start = localDate(Date.now(), tz);
+    const start = store.today();
     const payloads = expandPipeline(t, start);
     let prev: string | null = null;
     for (const p of payloads) {
@@ -526,7 +534,7 @@ function PipelinesSection() {
 
 export function SettingsView() {
   return (
-    <div className="safe-top mx-auto max-w-2xl px-4 pt-4 pb-10 sm:px-6 md:pt-6">
+    <div className="safe-top mx-auto max-w-2xl px-4 [--pad-top:1rem] pb-10 sm:px-6 md:[--pad-top:1.5rem]">
       <h1 className="mb-4 text-[28px] leading-tight font-semibold tracking-[-0.02em]">Settings</h1>
       <div className="space-y-4">
         <TimezoneSection />

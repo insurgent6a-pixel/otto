@@ -3,7 +3,7 @@
 import { store } from "./store";
 import { chime, confetti, haptic, speak } from "./rewards";
 import { localDate, addDays } from "@/engine/time";
-import { praiseLine, GOAL_HIT_LINE, completionGoalLine, focusEndLine } from "@/engine/messages";
+import { praiseLine, GOAL_HIT_LINE, focusEndLine } from "@/engine/messages";
 import { adjustedDailyGoal } from "@/engine/daily";
 import { postponePatch, shrinkPatch, handOffPatch } from "@/engine/force";
 import type { Task } from "@/engine/types";
@@ -49,10 +49,7 @@ export function completeWithReward(task: Task, from?: Element | null) {
       undo: () => void handle.undo(),
       ms: 5000,
     });
-    const goalName = currentGoalName();
-    if (!hitGoal && goalName && Math.random() < 0.35) {
-      setTimeout(() => store.toast(completionGoalLine(goalName), { otto: true }), 5200);
-    }
+    store.set({ lastCompletion: { at: Date.now(), hitGoal } });
   });
 }
 

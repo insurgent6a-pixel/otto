@@ -15,7 +15,8 @@ import { Celebrate } from "./Celebrate";
 import { PROJECTS } from "@/engine/types";
 import { projectName } from "@/engine/format";
 import { usePulse } from "./usePulse";
-import { registerServiceWorker } from "@/lib/push";
+import { registerServiceWorker, resubscribe, setBadge } from "@/lib/push";
+import { useToday } from "./usePulse";
 
 const TABS = [
   { href: "/", label: "Today", Icon: IconToday },
@@ -55,8 +56,20 @@ function Loading() {
   );
 }
 
+/** Overdue plus forced, per spec 15. Push payloads set it too while Otto is closed. */
+function BadgeSync() {
+  const model = useToday();
+  const forced = useOtto((s) => s.tasks.filter((t) => t.status === "todo" && t.forced).length);
+  const count = model.triage.length + forced;
+  useEffect(() => setBadge(count), [count]);
+  return null;
+}
+
 function Ready({ children }: { children: ReactNode }) {
   useShortcuts();
+  useEffect(() => {
+    void resubscribe();
+  }, []);
   const router = useRouter();
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -75,6 +88,7 @@ function Ready({ children }: { children: ReactNode }) {
       <CommandPalette />
       <HelpOverlay />
       <Celebrate />
+      <BadgeSync />
     </div>
   );
 }
@@ -129,7 +143,9 @@ function Sidebar() {
   const pulse = usePulse();
   const views = [...TABS, { href: "/all", label: "All tasks", Icon: IconList }, { href: "/settings", label: "Settings", Icon: IconSettings }];
   return (
-    <aside className="sticky top-0 hidden h-dvh flex-col border-r border-line bg-panel-2 px-3 py-5 md:flex">
+    // The wrapper paints the full column height; the aside itself stays pinned while the page scrolls.
+    <div className="hidden border-r border-line bg-panel-2 md:block">
+    <aside className="sticky top-0 flex h-dvh flex-col px-3 py-5">
       <Link href="/" className="mb-6 flex items-center gap-2.5 px-3">
         <OttoMark size={26} />
         <span className="brand text-[17px]">OTTO</span>
@@ -170,7 +186,7 @@ function Sidebar() {
         <div className="flex items-center gap-3">
           <Ring value={pulse.score / 100} size={40} stroke={4} />
           <div>
-            <p className="num text-[20px] leading-none font-semibold text-fire">{pulse.score}</p>
+            <p className="num text-[20px] leading-none font-semibold text-fire-ink">{pulse.score}</p>
             <p className="mt-1 text-[13px] text-muted">Score today</p>
           </div>
         </div>
@@ -178,9 +194,10 @@ function Sidebar() {
           Momentum <span className="num text-ink">{pulse.momentum}</span>{" "}
           <span aria-label={`trend ${pulse.trend}`}>{pulse.trend === "up" ? "↑" : pulse.trend === "down" ? "↓" : "→"}</span>
           {" · "}
-          <span className="text-fire">{pulse.streak} day streak</span>
+          <span className="text-fire-ink">{pulse.streak} day streak</span>
         </p>
       </div>
     </aside>
+    </div>
   );
 }

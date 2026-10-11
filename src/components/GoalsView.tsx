@@ -155,7 +155,7 @@ export function GoalsView() {
   };
 
   return (
-    <div className="safe-top mx-auto max-w-5xl px-4 pt-4 pb-10 sm:px-6 md:px-8 md:pt-6">
+    <div className="safe-top mx-auto max-w-5xl px-4 [--pad-top:1rem] pb-10 sm:px-6 md:px-8 md:[--pad-top:1.5rem]">
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-[28px] leading-tight font-semibold tracking-[-0.02em]">Goals</h1>
         <Link href="/settings" className="inline-flex min-h-11 items-center gap-2 rounded-[13px] border border-line bg-panel px-3.5 text-[15px] hoverable md:hidden">
@@ -174,7 +174,7 @@ export function GoalsView() {
                   <span className="text-muted">{pulse.trend === "up" ? "rising" : pulse.trend === "down" ? "slipping" : "steady"}</span>
                 </p>
               </div>
-              <p className="flex items-center gap-1.5 text-[15px] font-medium text-fire">
+              <p className="flex items-center gap-1.5 text-[15px] font-medium text-fire-ink">
                 <IconFlame size={18} /> <span className="num">{pulse.streak}</span> {pulse.streak === 1 ? "day" : "days"}
               </p>
             </div>
@@ -193,7 +193,11 @@ export function GoalsView() {
               </div>
               <div>
                 <dt className="text-[13px] text-muted">Average score</dt>
-                <dd className="num text-[24px] font-semibold text-fire">{review.avgScore ?? "None"}</dd>
+                {review.avgScore != null ? (
+                  <dd className="num text-[24px] font-semibold text-fire-ink">{review.avgScore}</dd>
+                ) : (
+                  <dd className="text-[17px] font-semibold text-muted">Not yet</dd>
+                )}
               </div>
               <div>
                 <dt className="text-[13px] text-muted">Best day</dt>
