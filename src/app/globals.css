@@ -1,0 +1,248 @@
+@import "tailwindcss";
+
+/* Solarpunk Day (light) is the default. Forest Night is its twin, never plain black. */
+:root {
+  --bg: #f5f4ec;
+  --panel: #ffffff;
+  --panel-2: #f8f8f1;
+  --line: #e3e2d5;
+  --ink: #1c2a21;
+  --muted: #66766b;
+  --accent: #2f7d5b;
+  --accent-ink: #ffffff;
+  --sun: #f2bf45;
+  --fire: #e0442a;
+  --late: #b8442b;
+  --ok: #2f7d5b;
+  --amber: #c98a12;
+  --soil: #8a5a33;
+  --plum: #7b56ad;
+  --coral: #c45a36;
+  --accent-soft: color-mix(in oklab, var(--accent) 12%, transparent);
+  --sun-soft: color-mix(in oklab, var(--sun) 22%, transparent);
+  --fire-soft: color-mix(in oklab, var(--fire) 12%, transparent);
+  --late-soft: color-mix(in oklab, var(--late) 10%, transparent);
+  --shadow: 0 1px 0 rgb(28 42 33 / 0.04), 0 8px 24px -12px rgb(28 42 33 / 0.18);
+  --bar-bg: rgb(245 244 236 / 0.82);
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1e19;
+    --panel: #152822;
+    --panel-2: #1a302a;
+    --line: #24413a;
+    --ink: #e8f2ea;
+    --muted: #9db7a9;
+    --accent: #9fe3bd;
+    --accent-ink: #0b1f17;
+    --sun: #f1d48a;
+    --fire: #ff6a4d;
+    --late: #ef8a6d;
+    --ok: #9fe3bd;
+    --amber: #e6b75a;
+    --soil: #c99a6e;
+    --plum: #bea2e8;
+    --coral: #f29473;
+    --shadow: 0 1px 0 rgb(0 0 0 / 0.2), 0 10px 28px -14px rgb(0 0 0 / 0.6);
+    --bar-bg: rgb(15 30 25 / 0.8);
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #0f1e19;
+  --panel: #152822;
+  --panel-2: #1a302a;
+  --line: #24413a;
+  --ink: #e8f2ea;
+  --muted: #9db7a9;
+  --accent: #9fe3bd;
+  --accent-ink: #0b1f17;
+  --sun: #f1d48a;
+  --fire: #ff6a4d;
+  --late: #ef8a6d;
+  --ok: #9fe3bd;
+  --amber: #e6b75a;
+  --soil: #c99a6e;
+  --plum: #bea2e8;
+  --coral: #f29473;
+  --shadow: 0 1px 0 rgb(0 0 0 / 0.2), 0 10px 28px -14px rgb(0 0 0 / 0.6);
+  --bar-bg: rgb(15 30 25 / 0.8);
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-panel: var(--panel);
+  --color-panel-2: var(--panel-2);
+  --color-line: var(--line);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-soft: var(--accent-soft);
+  --color-sun: var(--sun);
+  --color-sun-soft: var(--sun-soft);
+  --color-fire: var(--fire);
+  --color-fire-soft: var(--fire-soft);
+  --color-late: var(--late);
+  --color-late-soft: var(--late-soft);
+  --color-ok: var(--ok);
+  --color-amber: var(--amber);
+  --color-soil: var(--soil);
+  --color-plum: var(--plum);
+  --color-coral: var(--coral);
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --font-brand: var(--font-michroma), var(--font-geist-sans), sans-serif;
+  --radius-card: 18px;
+  --radius-btn: 13px;
+  --shadow-card: var(--shadow);
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  background: var(--bg);
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+}
+
+button,
+[role="button"],
+a {
+  touch-action: manipulation;
+}
+
+button {
+  -webkit-user-select: none;
+  user-select: none;
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+input,
+textarea,
+select {
+  font-size: 16px; /* under 16px iOS zooms the page on focus */
+}
+
+.num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.brand {
+  font-family: var(--font-brand);
+  letter-spacing: 0.06em;
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+@media (hover: hover) {
+  .hoverable:hover {
+    background: var(--panel-2);
+  }
+}
+
+/* Motion: only completion, sheets and dragging (spec 17). */
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes check-pop {
+  0% {
+    transform: scale(0.6);
+  }
+  60% {
+    transform: scale(1.18);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes slide-out {
+  to {
+    transform: translateX(110%);
+    opacity: 0;
+  }
+}
+@keyframes toast-in {
+  from {
+    transform: translateY(12px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.anim-sheet {
+  animation: sheet-up 260ms cubic-bezier(0.2, 0.9, 0.25, 1);
+}
+.anim-fade {
+  animation: fade-in 180ms ease-out;
+}
+.anim-pop {
+  animation: check-pop 320ms cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+.anim-out {
+  animation: slide-out 280ms ease-in forwards;
+  animation-delay: 350ms;
+}
+.anim-toast {
+  animation: toast-in 200ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .anim-sheet,
+  .anim-fade,
+  .anim-pop,
+  .anim-toast {
+    animation: none;
+  }
+  .anim-out {
+    animation: fade-in 1ms reverse forwards;
+    animation-delay: 350ms;
+  }
+}
+
+.safe-top {
+  padding-top: env(safe-area-inset-top);
+}
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
