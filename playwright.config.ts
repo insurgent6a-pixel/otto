@@ -1,6 +1,8 @@
 import { defineConfig } from "@playwright/test";
 
 // Runs against a local Supabase stack (npx supabase start) and the dev server.
+// Keys and the test password come from .env.local, never from the code.
+process.loadEnvFile(".env.local");
 export default defineConfig({
   testDir: "./e2e",
   timeout: 60_000,
